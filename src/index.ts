@@ -1,14 +1,6 @@
-import puppeteer from 'puppeteer';
+// run app
 
-(async () => {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto('https://google.com');
-    await page.pdf({path: 'google.pdf'});
-  
-    await browser.close();
-  })();
+import {PuppeteerScraper} from './puppeteer-scraper'
 
-let helloWorld = 'Hello World TypeScript';
-
-console.log(helloWorld)
+let scraper = new PuppeteerScraper()
+scraper.run()
