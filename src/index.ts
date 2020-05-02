@@ -1,0 +1,14 @@
+import puppeteer from 'puppeteer';
+
+(async () => {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto('https://google.com');
+    await page.pdf({path: 'google.pdf'});
+  
+    await browser.close();
+  })();
+
+let helloWorld = 'Hello World TypeScript';
+
+console.log(helloWorld)
