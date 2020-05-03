@@ -60,11 +60,46 @@ export class PuppeteerScraper {
         })();
     }
     
-    parallelProcessing() {
-        console.log('parallel')
+    parallelProcessingLimits() {
+        console.log('parallelLimits')
     }
 
-    parallelProcessingLimits() {
-        // console.log('parallerl-limits')
+    parallelProcessing() {
+        (async () => {
+            console.log('start parallel processing')
+
+            const promisesBrowsers = [];
+
+            const dataInput: object[] = [];
+
+            for (let numberBrowser = 0; numberBrowser < dataInput.length; numberBrowser++) {
+                promisesBrowsers.push(new Promise(async (responseBrowser) => {
+                    const browser: any = await puppeteer.launch();
+                    const promisesPages: object[] = [];
+
+                    for(let i = 0; i < 10; i++) {
+                        promisesPages.push(new Promise(async (responsePage) => {
+                            try {
+                                
+                                // iteracja po wszystkich sklepach
+                            } catch (error) {
+                                console.log(error)
+                            }
+
+                            responsePage();
+                        }))
+                    }
+
+                    await Promise.all(promisesPages);
+                    await browser.close();
+                    responseBrowser();
+                }))
+            }
+
+            await Promise.all(promisesBrowsers);
+            // save results
+
+            console.log('end parallel processing')
+        })();
     }
 }
