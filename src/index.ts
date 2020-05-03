@@ -2,7 +2,11 @@
 
 import puppeteer from 'puppeteer'
 import { PuppeteerScraper } from './puppeteer-scraper'
+import { File } from './file'
 
-let scraper = new PuppeteerScraper(puppeteer)
+const fileObject = new File()
+fileObject.checkIfDataDirectoryExists()
+
+const scraper = new PuppeteerScraper(puppeteer, 'other')
 scraper.run()
 
