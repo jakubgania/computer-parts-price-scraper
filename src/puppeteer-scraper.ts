@@ -102,4 +102,8 @@ export class PuppeteerScraper {
             console.log('end parallel processing')
         })();
     }
+
+    extractProductData() {
+        console.log('extract product data')
+    }
 }
