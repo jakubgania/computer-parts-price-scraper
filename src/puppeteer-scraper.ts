@@ -1,6 +1,9 @@
 
 export class PuppeteerScraper {
     processingType: string;
+    viewportWidth: number = 1920; // number of pixels
+    viewportHeight: number = 1080; // number of pixels
+
 
     constructor(processingType: string = 'sequential') {
         this.processingType = processingType
@@ -9,15 +12,15 @@ export class PuppeteerScraper {
     run() {
         switch(this.processingType) {
             case 'sequential': {
-                console.log('sequential')
+                this.sequentialProcessing();
                 break;
             }
             case 'parallel': {
-                console.log('parallel')
+                this.parallelProcessing();
                 break;
             }
             case 'parallel-limits': {
-                console.log('parallerl-limits')
+                this.parallelProcessingLimits();
                 break;
             }
             default: {
@@ -27,7 +30,15 @@ export class PuppeteerScraper {
         }
     }
 
-    // parallel processing
-    // parallel processing with limits
-    // sequential processing
+    sequentialProcessing() {
+        console.log('sequential')
+    }
+    
+    parallelProcessing() {
+        console.log('parallel')
+    }
+
+    parallelProcessingLimits() {
+        // console.log('parallerl-limits')
+    }
 }

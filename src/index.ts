@@ -1,6 +1,8 @@
 // run app
 
-import {PuppeteerScraper} from './puppeteer-scraper'
+import puppeteer from 'puppeteer'
+import { PuppeteerScraper } from './puppeteer-scraper'
 
 let scraper = new PuppeteerScraper()
 scraper.run()
+
