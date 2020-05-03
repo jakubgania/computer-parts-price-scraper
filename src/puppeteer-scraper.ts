@@ -21,7 +21,7 @@ export class PuppeteerScraper {
                 break;
             }
             default: {
-                console.log('not found')
+                return null;
                 break;
             }
         }
