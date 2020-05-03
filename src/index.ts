@@ -3,6 +3,6 @@
 import puppeteer from 'puppeteer'
 import { PuppeteerScraper } from './puppeteer-scraper'
 
-let scraper = new PuppeteerScraper()
+let scraper = new PuppeteerScraper(puppeteer)
 scraper.run()
 
