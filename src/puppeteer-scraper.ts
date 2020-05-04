@@ -7,6 +7,8 @@ export class PuppeteerScraper {
     viewportHeight: number = 1080; // number of pixels
     USER_AGENT: string = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3239.108 Safari/537.36';
 
+    
+
 
     constructor(puppeteer: object ,processingType: string = 'sequential') {
         this.puppeteerX = puppeteer,
@@ -70,18 +72,36 @@ export class PuppeteerScraper {
 
             const promisesBrowsers = [];
 
-            const dataInput: object[] = [];
+            const dataInput = this.dataInput;
 
             for (let numberBrowser = 0; numberBrowser < dataInput.length; numberBrowser++) {
                 promisesBrowsers.push(new Promise(async (responseBrowser) => {
                     const browser: any = await puppeteer.launch();
                     const promisesPages: object[] = [];
 
-                    for(let i = 0; i < 10; i++) {
+                    for(let [key] of Object.entries(dataInput[numberBrowser].components)) {
+                        // console.log(dataInput[numberBrowser].components[key])
+
+                        let item = dataInput[numberBrowser].components[key];
+
                         promisesPages.push(new Promise(async (responsePage) => {
                             try {
-                                
-                                // iteracja po wszystkich sklepach
+                                let page = await browser.newPage();
+                                await page.setViewport({
+                                    width: this.viewportWidth,
+                                    height: this.viewportHeight
+                                });
+                                await page.goto(item.url, {
+                                    waitUntil: 'load',
+                                    timeout: 0
+                                });
+
+                                // await page.waitForXPath(value.xpath);
+                                // console.log('call to extractProductData method');
+                                let resx = await this.extractProductData(page, dataInput[numberBrowser].rules);
+
+                                console.log(resx);
+
                             } catch (error) {
                                 console.log(error)
                             }
@@ -103,7 +123,35 @@ export class PuppeteerScraper {
         })();
     }
 
-    extractProductData() {
-        console.log('extract product data')
+    extractProductData(page: any, rulesObject: any) {
+        return new Promise(async (resolve) => {
+            let [element] = await page.$x(rulesObject.parentElement.xPath);
+            let evaluateKey = rulesObject.parentElement.evaluateEelement;
+            let resultElement = await page.evaluate((element, evaluateKey) => {
+                return element[evaluateKey]
+            }, element, evaluateKey);
+
+            rulesObject.childEelement.forEach(async (item) => {
+                if (this.checkCondition(resultElement, item.condition)) {
+                    let [element2] = await page.$x(item.xPath);
+                    let evaluateKey: string = item.evaluateEelement;
+                    let resultElement2 = await page.evaluate((element2: object, evaluateKey: string) => {
+                        return element2[evaluateKey]
+                    }, element2, evaluateKey);
+
+                    resolve({ 'price': resultElement2 });
+                }
+            });
+        })
+    }
+
+    checkCondition(resultElement: string|number, condition: any) {
+        if (condition.comparasionType === '===') {
+            return resultElement === condition.value ? true : false;
+        }
+
+        if (condition.comparasionType === '==') {
+            return resultElement === parseInt(condition.value) ? true : false;
+        }
     }
 }

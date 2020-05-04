@@ -7,6 +7,6 @@ import { File } from './file'
 const fileObject = new File()
 fileObject.checkIfDataDirectoryExists()
 
-const scraper = new PuppeteerScraper(puppeteer, 'other')
+const scraper = new PuppeteerScraper(puppeteer, 'parallel')
 scraper.run()
 
