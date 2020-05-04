@@ -43,13 +43,15 @@ export class PuppeteerScraper {
             const links:string[] = ['https://google.com', 'https://github.com']
 
             try {
-                // console.log('start download data loop')
                 for (let counter = 0; counter < links.length; counter++) {
                     const browser = await puppeteer.launch();
                     const page = await browser.newPage();
                     await page.setUserAgent(this.USER_AGENT);
                     await page.goto(links[counter]);
-                    await page.setViewport({ width: this.viewportWidth, height: this.viewportHeight });
+                    await page.setViewport({
+                        width: this.viewportWidth,
+                        height: this.viewportHeight
+                    });
                     await page.screenshot({ path: `./screenshots/${counter}test.jpeg`, fullPage: false });
                     await page.close();
                     await browser.close();
@@ -71,7 +73,6 @@ export class PuppeteerScraper {
             console.log('start parallel processing')
 
             const promisesBrowsers = [];
-
             const dataInput = this.dataInput;
 
             for (let numberBrowser = 0; numberBrowser < dataInput.length; numberBrowser++) {
@@ -80,8 +81,6 @@ export class PuppeteerScraper {
                     const promisesPages: object[] = [];
 
                     for(let [key] of Object.entries(dataInput[numberBrowser].components)) {
-                        // console.log(dataInput[numberBrowser].components[key])
-
                         let item = dataInput[numberBrowser].components[key];
 
                         promisesPages.push(new Promise(async (responsePage) => {
@@ -91,14 +90,14 @@ export class PuppeteerScraper {
                                     width: this.viewportWidth,
                                     height: this.viewportHeight
                                 });
+                                await page.setUserAgent(this.USER_AGENT);
                                 await page.goto(item.url, {
                                     waitUntil: 'load',
                                     timeout: 0
                                 });
 
                                 // await page.waitForXPath(value.xpath);
-                                // console.log('call to extractProductData method');
-                                let resx = await this.extractProductData(page, dataInput[numberBrowser].rules);
+                                let resx = await this.extractProductData(page, dataInput[numberBrowser].rules, key);
 
                                 console.log(resx);
 
@@ -123,25 +122,51 @@ export class PuppeteerScraper {
         })();
     }
 
-    extractProductData(page: any, rulesObject: any) {
+    extractProductData(page: any, rulesObject: any, key: string) {
         return new Promise(async (resolve) => {
-            let [element] = await page.$x(rulesObject.parentElement.xPath);
-            let evaluateKey = rulesObject.parentElement.evaluateEelement;
-            let resultElement = await page.evaluate((element, evaluateKey) => {
-                return element[evaluateKey]
-            }, element, evaluateKey);
+            let response: object = {};
+            response['component'] = key;
+            const keys = Object.keys(rulesObject);
 
-            rulesObject.childEelement.forEach(async (item) => {
+            for (const key of keys) {
+                if (key === 'price') {
+                    let resultElement = await this.evaluateElement(page, rulesObject.price.parentElement.xPath, rulesObject.price.parentElement.evaluateEelement);
+
+                    response['price'] = await this.childElement(page, rulesObject, resultElement);
+                }
+    
+                if (key === 'name') {
+                    let resultElement = await this.evaluateElement(page, rulesObject.name.parentElement.xPath, rulesObject.name.parentElement.evaluateEelement);
+
+                    response['name'] = resultElement;
+                }
+            }
+
+            resolve(response)
+        })
+    }
+
+    childElement(page, rulesObject, resultElement) {
+        return new Promise(async (resolve) => {
+            await rulesObject.price.childEelement.forEach(async (item) => {
                 if (this.checkCondition(resultElement, item.condition)) {
-                    let [element2] = await page.$x(item.xPath);
-                    let evaluateKey: string = item.evaluateEelement;
-                    let resultElement2 = await page.evaluate((element2: object, evaluateKey: string) => {
-                        return element2[evaluateKey]
-                    }, element2, evaluateKey);
+                    let resultElement2 = await this.evaluateElement(page, item.xPath, item.evaluateEelement);
 
-                    resolve({ 'price': resultElement2 });
+                    resolve(resultElement2)
                 }
             });
+        })
+    }
+
+    evaluateElement(page: any, xPath: string, evaluateKey: string) {
+        return new Promise(async (resolve) => {
+            let [element] = await page.$x(xPath);
+
+            let resultElement = await page.evaluate((element: object, evaluateKey: string) => {
+                return element[evaluateKey];
+            }, element, evaluateKey);
+
+            resolve(resultElement);
         })
     }
 
