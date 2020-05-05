@@ -32,13 +32,6 @@ export class File {
     }
 
     saveResults() {
-        // return new Promise(async (resolve) => {
-        //     try {
-        //         if () {
-        //         } else {}
-        //     } catch (error) {
-        //         console.log(error)
-        //     }
-        // })
+        // 
     }
 }

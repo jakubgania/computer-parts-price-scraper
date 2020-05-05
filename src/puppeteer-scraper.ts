@@ -38,29 +38,45 @@ export class PuppeteerScraper {
 
     sequentialProcessing() {
         (async () => {
+            const startDate = new Date().getTime();
             console.log('start sequential processing')
 
-            const links:string[] = ['https://google.com', 'https://github.com']
+            const dataInput = this.dataInput;
 
             try {
-                for (let counter = 0; counter < links.length; counter++) {
-                    const browser = await puppeteer.launch();
-                    const page = await browser.newPage();
-                    await page.setUserAgent(this.USER_AGENT);
-                    await page.goto(links[counter]);
-                    await page.setViewport({
-                        width: this.viewportWidth,
-                        height: this.viewportHeight
-                    });
-                    await page.screenshot({ path: `./screenshots/${counter}test.jpeg`, fullPage: false });
-                    await page.close();
-                    await browser.close();
-                }   
+                for (let i = 0; i < dataInput.length; i++) {
+                    for (let [key] of Object.entries(dataInput[i].components)) {
+                        console.log(key)
+    
+                        let item = dataInput[i].components[key];
+    
+                        const browser = await puppeteer.launch();
+                        const page = await browser.newPage();
+                        await page.setUserAgent(this.USER_AGENT);
+                        await page.goto(item.url, {
+                            waitUntil: 'load',
+                            timeout: 0
+                        });
+                        await page.setViewport({
+                            width: this.viewportWidth,
+                            height: this.viewportHeight
+                        });
+    
+                        let resx = await this.extractProductData(page, dataInput[i].rules, key);
+    
+                        console.log(resx);
+    
+                        // await page.screenshot({ path: `./screenshots/${counter}test.jpeg`, fullPage: false });
+                        await page.close();
+                        await browser.close();
+                    }   
+                }
             } catch (error) {
                 console.log(error)
             }
 
             console.log('end sequential processing')
+            console.log(`Time elapsed ${Math.round((new Date().getTime() - startDate) / 1000)} s`);
         })();
     }
     
@@ -70,6 +86,7 @@ export class PuppeteerScraper {
 
     parallelProcessing() {
         (async () => {
+            const startDate = new Date().getTime();
             console.log('start parallel processing')
 
             const promisesBrowsers = [];
@@ -96,13 +113,15 @@ export class PuppeteerScraper {
                                     timeout: 0
                                 });
 
+                                await page.waitFor(1800);
+
                                 // await page.waitForXPath(value.xpath);
                                 let resx = await this.extractProductData(page, dataInput[numberBrowser].rules, key);
 
                                 console.log(resx);
 
                             } catch (error) {
-                                console.log(error)
+                                console.log('promisesPages =>', error)
                             }
 
                             responsePage();
@@ -119,58 +138,82 @@ export class PuppeteerScraper {
             // save results
 
             console.log('end parallel processing')
+            console.log(`Time elapsed ${Math.round((new Date().getTime() - startDate) / 1000)} s`);
         })();
     }
 
     extractProductData(page: any, rulesObject: any, key: string) {
         return new Promise(async (resolve) => {
-            let response: object = {};
-            response['component'] = key;
-            const keys = Object.keys(rulesObject);
+            try {
+                let response: object = {};
+                response['component'] = key;
+                const keys = Object.keys(rulesObject);
 
-            for (const key of keys) {
-                if (key === 'price') {
-                    let resultElement = await this.evaluateElement(page, rulesObject.price.parentElement.xPath, rulesObject.price.parentElement.evaluateEelement);
+                for (const key of keys) {
+                    if (key === 'price') {
+                        let resultElement = await this.evaluateElement(page, rulesObject.price.parentElement.xPath, rulesObject.price.parentElement.evaluateEelement);
+                        
+                        response['price'] = await this.childElement(page, rulesObject, resultElement);
+                    }
+        
+                    if (key === 'name') {
+                        let resultElement = await this.evaluateElement(page, rulesObject.name.parentElement.xPath, rulesObject.name.parentElement.evaluateEelement);
 
-                    response['price'] = await this.childElement(page, rulesObject, resultElement);
+                        response['name'] = resultElement;
+                    }
                 }
-    
-                if (key === 'name') {
-                    let resultElement = await this.evaluateElement(page, rulesObject.name.parentElement.xPath, rulesObject.name.parentElement.evaluateEelement);
 
-                    response['name'] = resultElement;
-                }
+                resolve(response)
+            } catch (error) {
+                console.log('extractProductData => ', error)
             }
-
-            resolve(response)
         })
     }
 
     childElement(page, rulesObject, resultElement) {
         return new Promise(async (resolve) => {
-            await rulesObject.price.childEelement.forEach(async (item) => {
-                if (this.checkCondition(resultElement, item.condition)) {
-                    let resultElement2 = await this.evaluateElement(page, item.xPath, item.evaluateEelement);
+            try {
+                await rulesObject.price.childEelement.forEach(async (item) => {
+                    if (this.checkCondition(resultElement, item.condition)) {
+                        let resultElement2 = await this.evaluateElement(page, item.xPath, item.evaluateEelement);
 
-                    resolve(resultElement2)
-                }
-            });
+                        resolve(resultElement2)
+                    }
+                });
+            } catch (error) {
+                console.log('childElement => ', error)
+            }
         })
     }
 
     evaluateElement(page: any, xPath: string, evaluateKey: string) {
         return new Promise(async (resolve) => {
-            let [element] = await page.$x(xPath);
+            try {
+                let [element] = await page.$x(xPath);
+                let resultElement;
 
-            let resultElement = await page.evaluate((element: object, evaluateKey: string) => {
-                return element[evaluateKey];
-            }, element, evaluateKey);
+                if (evaluateKey === 'firstElementChild.className') {
+                    resultElement = await page.evaluate((element: object) => {
+                        return element['firstElementChild']['className'];
+                    }, element);
+                } else {
+                    resultElement = await page.evaluate((element: object, evaluateKey: string) => {
+                        return element[evaluateKey];
+                    }, element, evaluateKey);
+                }
 
-            resolve(resultElement);
+                resolve(resultElement);
+            } catch (error) {
+                console.log('evaluateElement => ', {
+                    'error': error,
+                    'xPath': xPath,
+                    'evaluateKey': evaluateKey
+                })
+            }
         })
     }
 
-    checkCondition(resultElement: string|number, condition: any) {
+    checkCondition(resultElement: any, condition: any) {
         if (condition.comparasionType === '===') {
             return resultElement === condition.value ? true : false;
         }
